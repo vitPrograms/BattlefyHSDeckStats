@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stream Overlay</title>
+  <style>
+:root {
+    --text-color: #fff;
+    --text-shadow-color: rgba(0, 0, 0, 0.7);
+    --black: #000;
+    --win-color: #649ff0;
+    --lose-color: #e75757;
+    --overlay-bg: rgba(0, 0, 0, 0.7);
+    --current-score-bg: #1E88E5;
+    --winrate-bg: #fff;
+    --winrate-text-color: #B3E5FC;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    font: bold 14px Arial, sans-serif;
+    color: var(--text-color);
+  }
+  
+  #container {
+    display: flex;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    gap: 10px;
+  }
+  
+  /* Лівий блок */
+  .results {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .current-score {
+    background: var(--current-score-bg);
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 32px;
+    text-align: center;
+  }
+  
+  .history {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+  }
+  
+  .history-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .series {
+    height: 50%;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 22px;
+    text-align: center;
+    color: var(--text-color) !important;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  }
+  
+  .series.win {
+    background: var(--win-color);
+    color: var(--black);
+  }
+  
+  .series.lose {
+    background: var(--lose-color);
+  }
+  
+  /* Основний блок */
+  .main {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 400px;
+  }
+  
+  .total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 24px;
+    text-shadow: 0 1px 1px var(--text-shadow-color);
+  }
+  
+  #bar {
+    display: flex;
+    width: 100%;
+    height: 22px;
+    border-radius: 15px;
+    overflow: hidden;
+  }
+  
+  #win-bar {
+    background: var(--win-color);
+    height: 100%;
+  }
+  
+  #lose-bar {
+    background: var(--lose-color);
+    height: 100%;
+  }
+  
+  .total::before,
+  .total::after {
+    font-size: 16px;
+  }
+  
+  .total::before {
+    content: attr(data-wins);
+    color: var(--win-color);
+  }
+  
+  .total::after {
+    content: attr(data-losses);
+    color: var(--lose-color);
+  }
+  
+  .wins {
+    color: var(--win-color);
+  }
+  
+  .losses {
+    color: var(--lose-color);
+  }
+  
+  .decks {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 10px;
+  }
+  
+  .deck-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .deck-el {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--overlay-bg);
+    border-radius: 5px;
+    padding: 5px 10px;
+    height: 100px;
+    text-shadow: 4px 4px 4px var(--text-shadow-color);
+  }
+  
+  .deck-el.death-knight {
+    background: url('https://i.redd.it/7wrdzdooldx91.png') no-repeat center/cover, var(--overlay-bg);
+  }
+  
+  .deck-el.warrior {
+    background: url('https://blz-contentstack-images.akamaized.net/v3/assets/bltc965041283bac56c/blt5677de4c919e9430/5e4da44ca9f0fb732c24c397/warrior.jpg') no-repeat center/cover, var(--overlay-bg);
+  }
+  
+  .deck-el.mage {
+    background: url('https://blz-contentstack-images.akamaized.net/v3/assets/bltc965041283bac56c/bltfad439f31b38dad2/5e4da46f8286c81bdae7858c/mage.jpg') no-repeat center/cover, var(--overlay-bg);
+  }
+  
+  .deck-el.rogue {
+    background: url('https://blz-contentstack-images.akamaized.net/v3/assets/bltc965041283bac56c/blt2fc4edc7ed836f8a/5e6008788286c81bdae78b9d/Rogue.jpg') no-repeat center/cover, var(--overlay-bg);
+  }
+  
+  .deck-el.shaman {
+    background: url('https://blz-contentstack-images.akamaized.net/v3/assets/bltc965041283bac56c/bltd6694bd0e56ba114/5e4da3cba481381bd5d2e9d7/shaman.jpg') no-repeat center/cover, var(--overlay-bg);
+  }
+  
+  .deck-el.warlock {
+    background: url('https://blz-contentstack-images.akamaized.net/v3/assets/bltc965041283bac56c/bltad0a2dc55b70fa29/5e4ee38e8d83401be1195eaa/warlock.jpg') no-repeat center/cover, var(--overlay-bg);
+  }
+  
+  .deck-el.priest {
+    background: url('https://blz-contentstack-images.akamaized.net/v3/assets/bltc965041283bac56c/blt4ff23385f5f401ef/5e500e588dc1e51c53168a5a/priest.jpg') no-repeat center/cover, var(--overlay-bg);
+  }
+  
+  .deck-el.paladin {
+    background: url('https://blz-contentstack-images.akamaized.net/v3/assets/bltc965041283bac56c/blt198019879a096f53/5e4ebd3a8dc1e51c531689a4/paladin.jpg') no-repeat center/cover, var(--overlay-bg);
+  }
+  
+  .deck-el.hunter {
+    background: url('https://blz-contentstack-images.akamaized.net/v3/assets/bltc965041283bac56c/blt12bb0cfe0878742b/5e4da461a9f0fb732c24c39b/hunter.jpg') no-repeat center/cover, var(--overlay-bg);
+  }
+  
+  .deck-el.druid {
+    background: url('https://blz-contentstack-images.akamaized.net/v3/assets/bltc965041283bac56c/blt810ba2b34c90b740/5e501a45297b4d1b5ff02394/druid.jpg') no-repeat center/cover, var(--overlay-bg);
+  }
+  
+  .deck-el.demon-hunter {
+    background: url('https://blz-contentstack-images.akamaized.net/v3/assets/bltc965041283bac56c/blt881c2890e465706d/5e5fe3d58902221b5e1dd5ea/dh.jpg') no-repeat center/cover, var(--overlay-bg);
+  }
+  
+  .left {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: center;
+    gap: 20px;
+    margin-left: 10px;
+  }
+  
+  .hero-name {
+    font-size: 26px;
+  }
+  
+  .winrate {
+    color: var(--black);
+    padding: 0 5px;
+    font-size: 18px;
+    color: var(--winrate-text-color);
+  }
+  
+  .right {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    text-align: end;
+    justify-content: end;
+    width: 100px;
+    margin-right: 10px;
+  }
+  
+  .win-to-lose {
+    width: 100%;
+    font-size: 18px;
+    font-weight: 800;
+  }
+  
+  .win {
+    color: var(--win-color);
+  }
+  
+  .lose {
+    color: var(--lose-color);
+  }
+  
+  .banned-count {
+    width: 100%;
+    gap: 2px;
+    font-size: 16px;
+  }
+  </style>
+</head>
+
+<body>
+  <div id="container">
+    <div class="results">
+      <div class="current-score">0-0</div>
+      <div class="history">
+        <ul class="history-list"></ul>
+      </div>
+    </div>
+    <div class="main">
+      <div class="total">
+        <span class="wins"></span>
+        <div id="bar">
+          <div id="win-bar"></div>
+          <span class="winrate"></span>
+          <div id="lose-bar"></div>
+        </div>
+        <span class="losses"></span>
+      </div>
+      <div class="decks">
+        <ul class="deck-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function updateStats() {
+      fetch('http://localhost:3000/stats')
+        .then(response => response.json())
+        .then(data => {
+          // Current Score
+          const current = Object.values(data.currentData)[0];
+          const currentScoreDiv = document.querySelector('.current-score');
+          currentScoreDiv.textContent = current ? current.score : '0-0';
+
+          // History
+          const historyList = document.querySelector('.history-list');
+          historyList.innerHTML = '';
+          data.seriesHistory.reverse().forEach(series => {
+            const [wins, losses] = series.split('-').map(Number);
+            const isWin = wins > losses;
+            const li = document.createElement('li');
+            li.className = `series ${isWin ? 'win' : 'lose'}`;
+            li.textContent = series;
+            historyList.appendChild(li);
+          });
+
+          // Total
+          const totalWins = data.overall.wins;
+          const totalLosses = data.overall.losses;
+          const totalGames = totalWins + totalLosses;
+          const winrate = totalGames > 0 ? Math.round((totalWins / totalGames) * 100) : 0;
+          const winPercentage = totalGames > 0 ? (totalWins / totalGames) * 100 : 0;
+          const losePercentage = totalGames > 0 ? (totalLosses / totalGames) * 100 : 0;
+
+          document.querySelector('.total .wins').textContent = totalWins;
+          document.querySelector('.total .losses').textContent = totalLosses;
+          document.querySelector('.total .winrate').textContent = `${winrate}%`;
+          document.querySelector('#win-bar').style.width = `${winPercentage}%`;
+          document.querySelector('#lose-bar').style.width = `${losePercentage}%`;
+
+          // Decks
+          const deckList = document.querySelector('.deck-list');
+          deckList.innerHTML = '';
+          Object.entries(data.decks).forEach(([deck, stats]) => {
+            const winrate = stats.wins + stats.losses > 0 
+              ? Math.round((stats.wins / (stats.wins + stats.losses)) * 100) 
+              : 0;
+            const li = document.createElement('li');
+            li.className = `deck-el ${deck.toLowerCase()}`; // Додаємо клас із назвою героя
+            li.innerHTML = `
+              <div class="left">
+                <span class="hero-name">${deck}</span>
+                <span class="winrate">${winrate}%</span>
+              </div>
+              <div class="right">
+                <div class="win-to-lose">
+                  <span class="win">${stats.wins}</span>
+                  -
+                  <span class="lose">${stats.losses}</span>
+                </div>
+                <div class="banned-count">
+                  <span>${stats.banned} 🛡️</span>
+                </div>
+              </div>
+            `;
+            deckList.appendChild(li);
+          });
+        })
+        .catch(error => console.error('Error fetching stats:', error));
+    }
+
+    // Оновлюємо одразу і кожні 5 секунд
+    updateStats();
+    setInterval(updateStats, 5000);
+  </script>
+</body>
+</html>
