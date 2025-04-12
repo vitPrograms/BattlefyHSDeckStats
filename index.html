@@ -372,7 +372,7 @@
           
           if (JSON.stringify(newHistory) !== JSON.stringify(lastHistory)) {
             historyList.innerHTML = '';
-            newHistory.forEach((series, index) => {
+            newHistory.reverse().forEach((series, index) => {
               const [wins, losses] = series.split('-').map(Number);
               const isWin = wins > losses;
               const li = document.createElement('li');
