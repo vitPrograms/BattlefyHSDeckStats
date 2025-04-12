@@ -360,6 +360,7 @@
           const current = Object.values(data.currentData)[0];
           const currentScoreDiv = document.querySelector('.current-score');
           const newScore = current && current.score ? current.score : '0-0';
+          if(newScore == "undefined-undefined") newScore = '0-0';
           if (newScore !== lastScore) {
             currentScoreDiv.textContent = newScore;
             lastScore = newScore;
