@@ -20,16 +20,21 @@
   body {
     margin: 0;
     padding: 0;
+    display: flex;
+    position: relative;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
     font: bold 14px Arial, sans-serif;
     color: var(--text-color);
   }
   
   #container {
     display: flex;
-    position: fixed;
-    top: 10px;
-    left: 10px;
+    position: relative;
+    padding: 10px;
     gap: 10px;
+    width: fit-content;
   }
   
   /* Лівий блок */
@@ -260,10 +265,50 @@
     gap: 2px;
     font-size: 16px;
   }
+
+  #player-search {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    width: 200px;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  #player-search input {
+    height: 30px;
+    padding: 5px 10px;
+    border: 1px solid var(--current-score-bg);
+    border-radius: 8px;
+  }
+
+  #player-search button {
+    background-color: var(--current-score-bg);
+    border: none;
+    color: var(--text-color);
+    font-size: 20px;
+    font-weight: 800;
+    border-radius: 8px;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+  }
+
+  #player-search button:hover {
+    background-color: var(--text-color);
+    border: 1px solid var(--current-score-bg);
+    color: var(--current-score-bg);
+    transition: .2s;
+    cursor: pointer;
+  }
   </style>
 </head>
-
 <body>
+  <!-- Додаємо форму для введення імені гравця -->
+  <div id="player-search">
+    <input type="text" id="player-name" value="Damiog#21552" placeholder="Нікнейм гравця - Damiog#21552)" />
+    <button onclick="fetchPlayerStats()">Get Stats</button>
+  </div>
+
   <div id="container">
     <div class="results">
       <div class="current-score">0-0</div>
@@ -288,26 +333,54 @@
   </div>
 
   <script>
+    let lastScore = '0-0'; // Зберігаємо попередній рахунок
+    let lastHistory = []; // Зберігаємо попередню історію
+    let currentPlayer = null; // Зберігаємо ім'я поточного гравця
+
+    // Функція для отримання даних гравця
+    function fetchPlayerStats() {
+      const playerName = document.getElementById('player-name').value.trim();
+      if (!playerName) {
+        alert('Please enter a player name.');
+        return;
+      }
+      currentPlayer = playerName;
+      updateStats(); // Оновлюємо дані для нового гравця
+    }
+
     function updateStats() {
-      fetch('https://battlefyhstournamentdeckstats.glitch.me/stats')
+      if (!currentPlayer) {
+        return; // Не оновлюємо, якщо гравець не вибраний
+      }
+      // Додаємо параметр playerName до запиту
+      fetch(`https://battlefyhstournamentdeckstats.glitch.me/stats?playerName=${encodeURIComponent(currentPlayer)}`)
         .then(response => response.json())
         .then(data => {
           // Current Score
           const current = Object.values(data.currentData)[0];
           const currentScoreDiv = document.querySelector('.current-score');
-          currentScoreDiv.textContent = current ? current.score : '0-0';
+          const newScore = current ? current.score : '0-0';
+          if (newScore !== lastScore) {
+            currentScoreDiv.textContent = newScore;
+            lastScore = newScore;
+          }
 
           // History
           const historyList = document.querySelector('.history-list');
-          historyList.innerHTML = '';
-          data.seriesHistory.reverse().forEach(series => {
-            const [wins, losses] = series.split('-').map(Number);
-            const isWin = wins > losses;
-            const li = document.createElement('li');
-            li.className = `series ${isWin ? 'win' : 'lose'}`;
-            li.textContent = series;
-            historyList.appendChild(li);
-          });
+          const newHistory = data.seriesHistory;
+          
+          if (JSON.stringify(newHistory) !== JSON.stringify(lastHistory)) {
+            historyList.innerHTML = '';
+            newHistory.forEach((series, index) => {
+              const [wins, losses] = series.split('-').map(Number);
+              const isWin = wins > losses;
+              const li = document.createElement('li');
+              li.className = `series ${isWin ? 'win' : 'lose'}`;
+              li.textContent = series;
+              historyList.appendChild(li);
+            });
+            lastHistory = [...newHistory];
+          }
 
           // Total
           const totalWins = data.overall.wins;
@@ -331,7 +404,7 @@
               ? Math.round((stats.wins / (stats.wins + stats.losses)) * 100) 
               : 0;
             const li = document.createElement('li');
-            li.className = `deck-el ${deck.toLowerCase()}`; // Додаємо клас із назвою героя
+            li.className = `deck-el ${deck.toLowerCase().replace(' ', '-')}`; // Замінюємо пробіл на дефіс для demon-hunter
             li.innerHTML = `
               <div class="left">
                 <span class="hero-name">${deck}</span>
@@ -344,7 +417,7 @@
                   <span class="lose">${stats.losses}</span>
                 </div>
                 <div class="banned-count">
-                  <span>${stats.banned} 🛡️</span>
+                  <span>${stats.banned}🛡️</span>
                 </div>
               </div>
             `;
@@ -354,8 +427,7 @@
         .catch(error => console.error('Error fetching stats:', error));
     }
 
-    // Оновлюємо одразу і кожні 5 секунд
-    updateStats();
+    // Оновлюємо кожні 5 секунд, але тільки якщо гравець вибраний
     setInterval(updateStats, 5000);
   </script>
 </body>
